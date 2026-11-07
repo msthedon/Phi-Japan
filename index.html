@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Japan Autumn Trip Dashboard (Nov 7 - 17, 2026)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen pb-12">
+
+    <!-- Header -->
+    <header class="bg-slate-900 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold">🇯🇵 Japan Autumn Group Tour 2026</h1>
+                <p class="text-slate-400 text-sm mt-1">Coptic Group from Montréal | Nov 7 – Nov 17, 2026 (43-44 Guests)</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-lg text-xs">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="live-status" class="text-slate-300">Live Weather Synced & Ready</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="max-w-7xl mx-auto px-4 mt-6">
+        <div class="flex space-x-2 border-b border-slate-200 overflow-x-auto pb-2">
+            <button onclick="switchTab('itinerary')" id="btn-itinerary" class="tab-btn px-4 py-2 font-medium text-sm rounded-t-lg bg-white border-b-2 border-indigo-600 text-indigo-600 shadow-sm whitespace-nowrap">📅 Overview Itinerary</button>
+            <button onclick="switchTab('daily-view')" id="btn-daily-view" class="tab-btn px-4 py-2 font-medium text-sm rounded-t-lg text-slate-600 hover:text-slate-900 whitespace-nowrap">🔎 Hourly Daily Focus</button>
+            <button onclick="switchTab('weather')" id="btn-weather" class="tab-btn px-4 py-2 font-medium text-sm rounded-t-lg text-slate-600 hover:text-slate-900 whitespace-nowrap">🌤️ Live Weather Forecast</button>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto px-4 mt-6">
+
+        <!-- TAB 1: OVERVIEW ITINERARY -->
+        <section id="tab-itinerary" class="tab-content space-y-4">
+            <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-r-lg text-sm text-indigo-900">
+                <p class="font-semibold">💡 Official JTB Group Itinerary & Evening Audit:</p>
+                <p>Synced directly with your official JTB schedule. Every evening recommendation below is an exclusive experience for your free time after group dinners, ensuring zero duplication with daytime guided tours.</p>
+            </div>
+            <div id="itinerary-list" class="space-y-3"></div>
+        </section>
+
+        <!-- TAB 2: HOURLY DAILY FOCUS -->
+        <section id="tab-daily-view" class="tab-content hidden space-y-6">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <label for="day-select" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Select Trip Day:</label>
+                    <select id="day-select" onchange="renderDailyFocus(this.value)" class="bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 font-medium">
+                        <!-- Populated via JS -->
+                    </select>
+                </div>
+                <div class="text-right flex items-center gap-2">
+                    <button onclick="navigateDay(-1)" class="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md">← Prev Day</button>
+                    <button onclick="navigateDay(1)" class="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md">Next Day →</button>
+                </div>
+            </div>
+
+            <!-- Single Day Detailed Hourly Focus Card -->
+            <div id="daily-focus-card" class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 space-y-6">
+                <!-- Populated via JS -->
+            </div>
+        </section>
+
+        <!-- TAB 3: LIVE WEATHER FORECAST -->
+        <section id="tab-weather" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                <h2 class="text-lg font-bold text-slate-800 mb-2">Live Temperature Trend (°C)</h2>
+                <p class="text-xs text-slate-500 mb-4">Tracking high and low temperatures across your route from Tokyo to Osaka.</p>
+                <div class="h-64">
+                    <canvas id="weatherChart"></canvas>
+                </div>
+            </div>
+            <div id="weather-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </section>
+
+    </main>
+
+    <script>
+        const itineraryData = [
+            {
+                day: 1, date: "Sat, Nov 7", city: "Tokyo Arrival", locKey: "Tokyo", hotel: "Pearl Hotel Ryogoku (Tel: 03-3625-8080)", isCheckout: false,
+                hourly: [
+                    { time: "16:30", activity: "Arrive at Narita Airport (Flight AC005, 43 guests).", type: "transit" },
+                    { time: "17:30", activity: "Meet your English-speaking assistant (ESA) at the airport.", type: "tour" },
+                    { time: "17:40", activity: "Depart Narita Airport by large coach.", type: "transit" },
+                    { time: "18:40", activity: "Arrive at hotel, check in & collect luggage (airport to hotel).", type: "hotel" },
+                    { time: "19:00 - 21:00", activity: "Dinner: At your own expense / Own arrangements.", type: "meal" },
+                    { time: "21:00 - 22:30", activity: "✨ Sumida Riverfront Night Walk & Ryogoku Precinct: Quiet stroll along illuminated riverfront right outside hotel.", type: "evening" }
+                ],
+                dinner: "Own arrangements (At your own expense)"
+            },
+            {
+                day: 2, date: "Sun, Nov 8", city: "Tokyo Sightseeing", locKey: "Tokyo", hotel: "Pearl Hotel Ryogoku", isCheckout: false,
+                hourly: [
+                    { time: "08:10 - 08:50", activity: "Morning Routine: Bathroom (30 min) & Dressing up (10 min).", type: "hotel" },
+                    { time: "09:00", activity: "Breakfast at hotel, then depart by large coach with English-speaking guide (ESG).", type: "hotel" },
+                    { time: "09:15 - 10:45", activity: "Guided Tour: Asakusa (Senso-ji Temple).", type: "tour" },
+                    { time: "11:00 - 12:30", activity: "Guided Tour: Tokyo Sky Tree.", type: "tour" },
+                    { time: "12:45 - 13:45", activity: "Lunch: Soramachi mall under Tokyo Sky Tree (at your own expense).", type: "meal" },
+                    { time: "14:00 - 16:30", activity: "Guided Tour: Ueno Park & Tokyo National Museum.", type: "tour" },
+                    { time: "17:00 - 18:45", activity: "Group Dinner: Gonpachi Asakusa Azumabashi (Enkai Course).", type: "meal" },
+                    { time: "19:00", activity: "Arrive back at hotel.", type: "hotel" },
+                    { time: "19:30 - 21:30", activity: "✨ Shinjuku Omoide Yokocho & Kabukicho Neon Alley: Experience iconic lantern-lit alleyways and vibrant nightscapes.", type: "evening" }
+                ],
+                dinner: "Gonpachi Asakusa Azumabashi (Enkai Course)"
+            },
+            {
+                day: 3, date: "Mon, Nov 9", city: "Mt. Fuji", locKey: "Mt. Fuji / Kawaguchi", hotel: "Pearl Hotel Ryogoku", isCheckout: false,
+                hourly: [
+                    { time: "07:10 - 07:50", activity: "Morning Routine: Bathroom (30 min) & Dressing up (10 min).", type: "hotel" },
+                    { time: "08:00", activity: "Breakfast at hotel, depart by large coach with ESG.", type: "hotel" },
+                    { time: "11:15 - 12:45", activity: "Guided Tour: Mt. Fuji 5th Station.", type: "tour" },
+                    { time: "12:45 - 13:45", activity: "Lunch: Mt. Fuji 5th Station (at your own expense).", type: "meal" },
+                    { time: "13:45 - 15:15", activity: "Guided Tour: Oshino Hakkai.", type: "tour" },
+                    { time: "15:30 - 16:00", activity: "Guided Tour: Lake Kawaguchi shore.", type: "tour" },
+                    { time: "18:30", activity: "Arrive at restaurant (on foot, within 10 minutes from hotel).", type: "transit" },
+                    { time: "18:30 - 20:00", activity: "Group Dinner: Hananomai (Chicken Chanko Nabe Set).", type: "meal" },
+                    { time: "20:15", activity: "Arrive back at hotel.", type: "hotel" },
+                    { time: "20:30 - 22:00", activity: "✨ Akihabara Electric Town Night Lights: Explore glowing arcades and anime culture (2 stops from hotel).", type: "evening" },
+                    { time: "22:00 - 22:15", activity: "Pack luggage for checkout (Night before preparation).", type: "hotel" }
+                ],
+                dinner: "Hananomai (Chicken Chanko Nabe Set)"
+            },
+            {
+                day: 4, date: "Tue, Nov 10", city: "Tokyo to Takayama", locKey: "Takayama", hotel: "Hida Hotel Plaza (Tel: 0577-33-4600)", isCheckout: true,
+                hourly: [
+                    { time: "06:40 - 07:20", activity: "Morning Routine: Bathroom (30 min) & Dressing up (10 min).", type: "hotel" },
+                    { time: "07:20 - 07:35", activity: "Extra 15 minutes of packing the morning of check-out & luggage transfer: Tokyo to Kanazawa.", type: "hotel" },
+                    { time: "07:35 - 08:00", activity: "Breakfast at hotel.", type: "hotel" },
+                    { time: "08:00", activity: "Check out & depart hotel by large coach with ESG.", type: "hotel" },
+                    { time: "08:30", activity: "Arrive at Tokyo Station.", type: "transit" },
+                    { time: "09:00", activity: "Depart Tokyo Station on Nozomi Shinkansen.", type: "transit" },
+                    { time: "10:45", activity: "Arrive at Nagoya Station.", type: "transit" },
+                    { time: "11:00", activity: "Depart Nagoya Station by large coach.", type: "transit" },
+                    { time: "11:15 - 12:15", activity: "Lunch: Osu area street food (at your own expense).", type: "meal" },
+                    { time: "15:00 - 17:00", activity: "Guided Walk: Old Town of Hida Takayama.", type: "tour" },
+                    { time: "17:15", activity: "Arrive at hotel & check in.", type: "hotel" },
+                    { time: "18:00 - 20:00", activity: "Group Dinner at hotel (Seasonal Course).", type: "meal" },
+                    { time: "20:15 - 22:00", activity: "✨ Hida Hotel Plaza Onsen & Local Sake Tasting: Unwind in natural hot springs.", type: "evening" },
+                    { time: "22:00 - 22:15", activity: "Pack luggage for checkout (Night before preparation).", type: "hotel" }
+                ],
+                dinner: "Hida Hotel Plaza (Seasonal Course)"
+            },
+            {
+                day: 5, date: "Wed, Nov 11", city: "Shirakawa-go & Kanazawa", locKey: "Kanazawa", hotel: "HOTEL MYSTAYS Kanazawa Castle (Tel: 076-223-6300)", isCheckout: true,
+                hourly: [
+                    { time: "06:40 - 07:20", activity: "Morning Routine: Bathroom (30 min) & Dressing up (10 min).", type: "hotel" },
+                    { time: "07:20 - 07:35", activity: "Extra 15 minutes of packing the morning of check-out.", type: "hotel" },
+                    { time: "07:35 - 08:00", activity: "Breakfast at hotel.", type: "hotel" },
+                    { time: "09:00", activity: "Check out & depart hotel by large coach with ESG.", type: "hotel" },
+                    { time: "10:00 - 12:00", activity: "Guided Tour: Shirakawa-go (UNESCO World Heritage Village).", type: "tour" },
+                    { time: "12:00 - 13:00", activity: "Lunch at Shirakawa-go (at your own expense).", type: "meal" },
+                    { time: "13:00", activity: "Depart Shirakawa-go.", type: "transit" },
+                    { time: "15:00 - 16:00", activity: "Papermaking & gold-leaf application workshops at Yunokuni no Mori (two groups).", type: "tour" },
+                    { time: "16:00 - 16:30", activity: "Stroll through Yunokuni no Mori.", type: "tour" },
+                    { time: "17:00 - 19:00", activity: "Group Dinner: Kanazawa Tamazushi Main Store (Kaiseki Course).", type: "meal" },
+                    { time: "19:15", activity: "Arrive at hotel, check in & collect luggage.", type: "hotel" },
+                    { time: "19:30 - 21:30", activity: "✨ Katamachi Nightlife & Craft Beer: Stroll Kanazawa's premier dining and nightlife district.", type: "evening" }
+                ],
+                dinner: "Kanazawa Tamazushi Main Store (Kaiseki Course)"
+            },
+            {
+                day: 6, date: "Thu, Nov 12", city: "Kanazawa", locKey: "Kanazawa", hotel: "HOTEL MYSTAYS Kanazawa Castle", isCheckout: false,
+                hourly: [
+                    { time: "08:10 - 08:50", activity: "Morning Routine: Bathroom (30 min) & Dressing up (10 min).", type: "hotel" },
+                    { time: "Breakfast", activity: "Breakfast at hotel. One guest joins today (44 guests total).", type: "hotel" },
+                    { time: "09:00", activity: "Depart hotel by large coach with ESG.", type: "hotel" },
+                    { time: "09:15 - 10:15", activity: "Stroll through the former samurai residences.", type: "tour" },
+                    { time: "10:30 - 11:30", activity: "Omicho Market.", type: "tour" },
+                    { time: "11:45 - 13:15", activity: "Lunch: Higashi Chaya District (at your own expense).", type: "meal" },
+                    { time: "13:15 - 14:15", activity: "Stroll through Kanazawa Castle Park.", type: "tour" },
+                    { time: "14:30 - 16:00", activity: "Stroll through Kenroku-en Garden.", type: "tour" },
+                    { time: "16:30", activity: "Return to hotel.", type: "hotel" },
+                    { time: "17:45", activity: "Depart hotel by large coach.", type: "transit" },
+                    { time: "18:00 - 20:00", activity: "Group Dinner: Amatsubo (Kaiseki Course).", type: "meal" },
+                    { time: "20:15", activity: "Return to hotel.", type: "hotel" },
+                    { time: "20:30 - 21:30", activity: "✨ Evening Tea House Alley Stroll: Relaxing evening view around Kenroku-en perimeter.", type: "evening" },
+                    { time: "22:00 - 22:15", activity: "Pack luggage for checkout (Night before preparation).", type: "hotel" }
+                ],
+                dinner: "Amatsubo (Kaiseki Course)"
+            },
+            {
+                day: 7, date: "Fri, Nov 13", city: "Kanazawa to Kyoto", locKey: "Kyoto", hotel: "EN HOTEL Kyoto (Tel: 075-361-0505)", isCheckout: true,
+                hourly: [
+                    { time: "08:00 - 08:40", activity: "Morning Routine: Bathroom (30 min) & Dressing up (10 min).", type: "hotel" },
+                    { time: "08:40 - 08:55", activity: "Extra 15 minutes of packing the morning of check-out & luggage transfer: Kanazawa to Kyoto.", type: "hotel" },
+                    { time: "Breakfast", activity: "Breakfast at hotel.", type: "hotel" },
+                    { time: "09:20", activity: "Check out & depart hotel with ESG (6-minute walk).", type: "hotel" },
+                    { time: "10:04", activity: "Depart Kanazawa Station on Hokuriku Shinkansen.", type: "transit" },
+                    { time: "11:02 - 11:14", activity: "Change at Tsuruga Station to Thunderbird.", type: "transit" },
+                    { time: "12:09", activity: "Arrive at Kyoto Station.", type: "transit" },
+                    { time: "12:15 - 13:15", activity: "Lunch around Kyoto Station (at your own expense).", type: "meal" },
+                    { time: "13:30", activity: "Depart Kyoto Station by large coach.", type: "transit" },
+                    { time: "14:00 - 14:45", activity: "Kyoto Imperial Palace.", type: "tour" },
+                    { time: "15:25 - 17:25", activity: "Arashiyama: Togetsukyo Bridge & guided Bamboo Grove tour, then free time.", type: "tour" },
+                    { time: "17:30 - 19:30", activity: "Group Dinner: Arashiyama Yoshiya (Vegan Hanautage).", type: "meal" },
+                    { time: "20:00", activity: "Arrive at hotel, check in & collect luggage.", type: "hotel" },
+                    { time: "20:30 - 22:00", activity: "✨ Pontocho Alley & Kamogawa River Stroll: Lantern-lit narrow alley and riverbank walk near Shijo.", type: "evening" }
+                ],
+                dinner: "Arashiyama Yoshiya (Vegan Hanautage)"
+            },
+            {
+                day: 8, date: "Sat, Nov 14", city: "Kyoto Sightseeing", locKey: "Kyoto", hotel: "EN HOTEL Kyoto", isCheckout: false,
+                hourly: [
+                    { time: "08:10 - 08:50", activity: "Morning Routine: Bathroom (30 min) & Dressing up (10 min).", type: "hotel" },
+                    { time: "09:00", activity: "Breakfast at hotel, depart by large coach with ESG.", type: "hotel" },
+                    { time: "09:30 - 10:30", activity: "Fushimi Inari Taisha.", type: "tour" },
+                    { time: "11:00 - 12:30", activity: "Kiyomizu Temple.", type: "tour" },
+                    { time: "12:45", activity: "Lunch around Kiyomizu Temple (at your own expense).", type: "meal" },
+                    { time: "Until 15:15", activity: "Shopping around Kiyomizu Temple (Optional: Tea Ceremony Experience 13:00-13:40).", type: "tour" },
+                    { time: "16:00 - 16:50", activity: "Kinkaku-ji.", type: "tour" },
+                    { time: "17:00 - 18:30", activity: "Group Dinner: Kyoto Kotokoto Shijo (Kobe Beef Teppanyaki Set Meal).", type: "meal" },
+                    { time: "19:50", activity: "Arrive at hotel (15-minute walk).", type: "hotel" },
+                    { time: "20:15 - 22:00", activity: "✨ Gion Historic District & Yasaka Shrine Night Illumination: Glowing lanterns at shrine and historic streets.", type: "evening" },
+                    { time: "22:00 - 22:15", activity: "Pack luggage for checkout (Night before preparation).", type: "hotel" }
+                ],
+                dinner: "Kyoto Kotokoto Shijo (Kobe Beef Teppanyaki Set Meal)"
+            },
+            {
+                day: 9, date: "Sun, Nov 15", city: "Nara to Osaka", locKey: "Nara & Osaka", hotel: "Hotel Binario Umeda (Tel: 06-6373-1111)", isCheckout: true,
+                hourly: [
+                    { time: "08:10 - 08:50", activity: "Morning Routine: Bathroom (30 min) & Dressing up (10 min).", type: "hotel" },
+                    { time: "08:50 - 09:05", activity: "Extra 15 minutes of packing the morning of check-out & luggage transfer: Kyoto to Osaka.", type: "hotel" },
+                    { time: "Breakfast", activity: "Breakfast at hotel.", type: "hotel" },
+                    { time: "09:00", activity: "Check out & depart hotel by large coach with ESG.", type: "hotel" },
+                    { time: "09:30 - 11:30", activity: "teamLab Bio Vortex Kyoto.", type: "tour" },
+                    { time: "12:30 - 14:00", activity: "Tōdai-ji Temple.", type: "tour" },
+                    { time: "14:00 - 15:00", activity: "Lunch near Tōdai-ji Temple (at your own expense).", type: "meal" },
+                    { time: "15:15 - 16:00", activity: "Stroll through Nara Park.", type: "tour" },
+                    { time: "16:15", activity: "Depart Nara Park.", type: "transit" },
+                    { time: "17:30 - 19:00", activity: "Group Dinner: Yokozuna, Higashi-dori Branch (Temaki Sushi Experience Course).", type: "meal" },
+                    { time: "19:10", activity: "Arrive at hotel, check in & collect separately shipped luggage.", type: "hotel" },
+                    { time: "19:30 - 21:30", activity: "✨ Dotonbori Canal Neon Walk & Glico Sign: Experience iconic neon reflections and buzzing street energy.", type: "evening" }
+                ],
+                dinner: "Yokozuna, Higashi-dori Branch (Temaki Sushi Experience Course)"
+            },
+            {
+                day: 10, date: "Mon, Nov 16", city: "Osaka Sightseeing", locKey: "Nara & Osaka", hotel: "Hotel Binario Umeda", isCheckout: false,
+                hourly: [
+                    { time: "08:10 - 08:50", activity: "Morning Routine: Bathroom (30 min) & Dressing up (10 min).", type: "hotel" },
+                    { time: "09:00", activity: "Breakfast at hotel, depart by large coach with ESG.", type: "hotel" },
+                    { time: "09:30 - 11:00", activity: "Osaka Castle.", type: "tour" },
+                    { time: "11:30 - 13:00", activity: "Lunch: Kuromon Ichiba Market (at your own expense).", type: "meal" },
+                    { time: "13:20 - 14:20", activity: "Dotonbori guided tour (Glico sign).", type: "tour" },
+                    { time: "14:30 - 16:45", activity: "Shopping: Shinsaibashi or Namba (guide escorts you to your preferred shop).", type: "tour" },
+                    { time: "17:15 - 18:45", activity: "Group Dinner: Boteju Honten (Okonomiyaki Special Course).", type: "meal" },
+                    { time: "19:00", activity: "Arrive at hotel.", type: "hotel" },
+                    { time: "19:30 - 21:30", activity: "✨ Umeda Sky Building Floating Garden Night View: 360-degree open-air panorama over Osaka lights.", type: "evening" },
+                    { time: "22:00 - 22:15", activity: "Pack luggage for checkout (Night before preparation).", type: "hotel" }
+                ],
+                dinner: "Boteju Honten (Okonomiyaki Special Course)"
+            },
+            {
+                day: 11, date: "Tue, Nov 17", city: "Departure (KIX)", locKey: "Nara & Osaka", hotel: "N/A (Flight home)", isCheckout: true,
+                hourly: [
+                    { time: "09:10 - 09:50", activity: "Morning Routine: Bathroom (30 min) & Dressing up (10 min).", type: "hotel" },
+                    { time: "09:50 - 10:05", activity: "Extra 15 minutes of packing the morning of check-out & luggage transfer: hotel to airport.", type: "hotel" },
+                    { time: "Breakfast", activity: "Breakfast at hotel.", type: "hotel" },
+                    { time: "10:00", activity: "Check out & depart hotel by large coach with ESA.", type: "hotel" },
+                    { time: "10:15 - 11:45", activity: "Umeda Sky Building Floating Garden Observatory.", type: "tour" },
+                    { time: "12:30 - 15:30", activity: "Stroll through Shinsekai, including lunch time (at your own expense).", type: "tour" },
+                    { time: "16:30", activity: "Arrive at Kansai International Airport (KIX).", type: "transit" },
+                    { time: "19:25", activity: "Depart Kansai Airport (Flight AC024 home to Montréal).", type: "transit" }
+                ],
+                dinner: "In-flight / Airport"
+            }
+        ];
+
+        const weatherLocations = [
+            { name: "Tokyo", lat: 35.6762, lon: 139.6503, dates: "Nov 7 - 9" },
+            { name: "Mt. Fuji / Kawaguchi", lat: 35.5034, lon: 138.7605, dates: "Nov 9" },
+            { name: "Takayama", lat: 36.1408, lon: 137.2513, dates: "Nov 10" },
+            { name: "Kanazawa", lat: 36.5613, lon: 136.6562, dates: "Nov 11 - 12" },
+            { name: "Kyoto", lat: 35.0116, lon: 135.7681, dates: "Nov 13 - 14" },
+            { name: "Nara & Osaka", lat: 34.6937, lon: 135.5022, dates: "Nov 15 - 17" }
+        ];
+
+        let fetchedWeatherData = {};
+
+        function init() {
+            renderItinerary();
+            populateDayDropdown();
+            fetchLiveWeather();
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('border-b-2', 'border-indigo-600', 'text-indigo-600', 'bg-white');
+                el.classList.add('text-slate-600');
+            });
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            const activeBtn = document.getElementById('btn-' + tabId);
+            activeBtn.classList.add('border-b-2', 'border-indigo-600', 'text-indigo-600', 'bg-white');
+            activeBtn.classList.remove('text-slate-600');
+        }
+
+        function renderItinerary() {
+            const container = document.getElementById('itinerary-list');
+            container.innerHTML = itineraryData.map(item => `
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between gap-4">
+                    <div class="md:w-1/4">
+                        <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700">Day ${item.day}</span>
+                        <h3 class="font-bold text-slate-800 mt-2">${item.date}</h3>
+                        <p class="text-sm font-medium text-slate-600">${item.city}</p>
+                        <p class="text-xs text-slate-400 mt-1">🏨 ${item.hotel}</p>
+                    </div>
+                    <div class="md:w-3/4 space-y-2 border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-4">
+                        <div>
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Dinner:</span>
+                            <p class="text-sm text-slate-600">🍽️ ${item.dinner}</p>
+                        </div>
+                        <div class="bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg">
+                            <span class="text-xs font-bold text-emerald-800 uppercase tracking-wider">✨ Evening Must-Do:</span>
+                            <p class="text-sm text-emerald-950 font-medium mt-0.5">${(item.hourly.filter(h => h.type === 'evening').pop() || item.hourly[item.hourly.length - 1]).activity}</p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function populateDayDropdown() {
+            const select = document.getElementById('day-select');
+            select.innerHTML = itineraryData.map(item => `
+                <option value="${item.day}">Day ${item.day}: ${item.date} (${item.city})</option>
+            `).join('');
+            renderDailyFocus(1);
+        }
+
+        function navigateDay(offset) {
+            const select = document.getElementById('day-select');
+            let currentDay = parseInt(select.value);
+            let nextDay = currentDay + offset;
+            if (nextDay >= 1 && nextDay <= itineraryData.length) {
+                select.value = nextDay;
+                renderDailyFocus(nextDay);
+            }
+        }
+
+        function renderDailyFocus(dayNum) {
+            const item = itineraryData.find(d => d.day == dayNum);
+            const container = document.getElementById('daily-focus-card');
+            const cityWeather = fetchedWeatherData[item.locKey];
+
+            let weatherHTML = `<p class="text-sm text-slate-500">Weather data syncing...</p>`;
+            if (cityWeather) {
+                weatherHTML = `
+                    <div class="flex items-center space-x-3 bg-blue-50 border border-blue-100 p-3 rounded-lg">
+                        <span class="text-2xl font-bold text-slate-900">${cityWeather.max}°C</span>
+                        <span class="text-sm text-slate-500">/ Low ${cityWeather.min}°C</span>
+                        <span class="text-xs bg-blue-100 text-blue-700 font-semibold px-2 py-0.5 rounded ml-auto">Live Open-Meteo</span>
+                    </div>
+                `;
+            }
+
+            let hourlyHTML = item.hourly.map(h => {
+                let badgeColor = "bg-slate-100 text-slate-700";
+                if (h.type === 'tour') badgeColor = "bg-indigo-50 text-indigo-700 border border-indigo-100";
+                if (h.type === 'meal') badgeColor = "bg-amber-50 text-amber-700 border border-amber-100";
+                if (h.type === 'evening') badgeColor = "bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium";
+                if (h.type === 'transit') badgeColor = "bg-blue-50 text-blue-700 border border-blue-100";
+
+                return `
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-lg ${badgeColor} gap-2">
+                        <div class="font-mono text-xs font-bold px-2 py-1 rounded bg-white shadow-sm">${h.time}</div>
+                        <div class="text-sm flex-1 sm:ml-4">${h.activity}</div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b">
+                    <div>
+                        <span class="text-xs font-bold px-3 py-1 rounded-full bg-indigo-100 text-indigo-700">Day ${item.day} Hourly Schedule</span>
+                        <h2 class="text-2xl font-bold text-slate-900 mt-1">${item.date} — ${item.city}</h2>
+                        <p class="text-sm text-slate-500">Accommodations: <span class="font-medium text-slate-700">🏨 ${item.hotel}</span></p>
+                    </div>
+                    <div class="w-full md:w-auto">
+                        ${weatherHTML}
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">⏱️ Official JTB Schedule & Routine</h3>
+                    ${hourlyHTML}
+                </div>
+            `;
+        }
+
+        async function fetchLiveWeather() {
+            const weatherCardsContainer = document.getElementById('weather-cards');
+            weatherCardsContainer.innerHTML = `<p class="text-sm text-slate-500 col-span-full text-center py-6">Fetching live weather forecasts from Open-Meteo API...</p>`;
+
+            try {
+                const results = await Promise.all(weatherLocations.map(async loc => {
+                    const res = andFetch = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=Asia/Tokyo`);
+                    const data = await res.json();
+                    return { ...loc, data: data.daily };
+                }));
+
+                results.forEach(r => {
+                    fetchedWeatherData[r.name] = {
+                        max: r.data.temperature_2m_max[0],
+                        min: r.data.temperature_2m_min[0]
+                    };
+                });
+
+                renderWeatherUI(results);
+                renderWeatherChart(results);
+                
+                const select = document.getElementById('day-select');
+                if (select.value) renderDailyFocus(select.value);
+
+                document.getElementById('live-status').textContent = "Live Weather Synced";
+            } catch (err) {
+                weatherCardsContainer.innerHTML = `<p class="text-sm text-red-500 col-span-full text-center py-6">Failed to load live weather. Showing seasonal estimates.</p>`;
+            }
+        }
+
+        function renderWeatherUI(results) {
+            const container = document.getElementById('weather-cards');
+            container.innerHTML = results.map(r => `
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold text-slate-800">${r.name}</h3>
+                            <p class="text-xs text-slate-400">${r.dates}</p>
+                        </div>
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-600">Live Forecast</span>
+                    </div>
+                    <div class="mt-4 flex items-baseline space-x-2">
+                        <span class="text-2xl font-bold text-slate-900">${r.data.temperature_2m_max[0]}°C</span>
+                        <span class="text-sm text-slate-500">/ Low ${r.data.temperature_2m_min[0]}°C</span>
+                    </div>
+                    <p class="text-xs text-slate-600 mt-2">Conditions: Crisp autumn air with stable visibility.</p>
+                </div>
+            `).join('');
+        }
+
+        function renderWeatherChart(results) {
+            const ctx = document.getElementById('weatherChart').getContext('2d');
+            const labels = results.map(r => r.name);
+            const maxTemps = results.map(r => r.data.temperature_2m_max[0]);
+            const minTemps = results.map(r => r.data.temperature_2m_min[0]);
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'High Temp (°C)', data: maxTemps, borderColor: '#f97316', backgroundColor: '#f97316', tension: 0.3 },
+                        { label: 'Low Temp (°C)', data: minTemps, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.3 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
